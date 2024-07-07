@@ -1,143 +1,141 @@
 import os
-from glob import glob
-import logging
 import subprocess
-import tempfile
-from alive_progress import alive_bar
+from glob import glob
 
-# Configuração básica de logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-# Caminhos para as pastas de entrada e saída
+TOTAL_OCTAVES = 7
+TONES = ["c", "c_sharp", "d", "d_sharp", "e", "f", "f_sharp", "g", "g_sharp", "a", "a_sharp", "b"]
 INPUT_FOLDER = "input_samples"
 OUTPUT_FOLDER = "output_result"
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-
-# Lista de todas as notas a serem geradas
-NOTES = ["a", "a_sharp", "b", "c", "c_sharp", "d", "d_sharp",
-         "e", "f", "f_sharp", "g", "g_sharp"]
-
-# Número total de oitavas
-TOTAL_OCTAVES = 8
 
 
-def pitch_factor(semitones):
-    """Calcula o fator de ajuste para o tom."""
-    return 2 ** (semitones / 12)
-
-
-def generate_note_semitone_by_semitone(input_file, output_file, semitones):
-    """Gera os arquivos de saída ajustando a tonalidade sem modificar a duração, semitom por semitom."""
-    temp_files = []
-
-    try:
-        temp_file = input_file
-
-        for i in range(abs(semitones)):
-            fator = pitch_factor(1 if semitones > 0 else -1)
-            intermediate_output = f"{output_file}.temp{i}.wav"
-            command = [
-                "ffmpeg", "-hide_banner", "-loglevel", "error", "-i", temp_file,
-                "-af", f"rubberband=pitch={fator}",
-                intermediate_output
-            ]
-            subprocess.run(command, check=True)
-
-            temp_files.append(intermediate_output)
-            temp_file = intermediate_output
-
-        # Renomeia o arquivo final
-        os.rename(temp_file, output_file)
-
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Erro ao executar o comando ffmpeg: {e}")
-
-    finally:
-        # Remove arquivos temporários, se existirem
-        for temp_file in temp_files:
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-
-
-def map_input_files(input_folder):
-    """Mapeia as notas de entrada."""
-    input_files = glob(os.path.join(input_folder, "*.wav"))
-    input_map = {}
-    for input_file in input_files:
-        base_name = os.path.basename(input_file)
-        note, octave = parse_note_and_octave(base_name)
-        input_map[(note, octave)] = input_file
-    logger.info(f"Mapeou {len(input_files)} arquivos de entrada.")
-    return input_map
-
-
-def parse_note_and_octave(file_name):
-    """Extrai a nota e a oitava do nome do arquivo."""
-    note, octave = file_name.rsplit("_", 1)
-    octave = int(octave.split(".")[0])
-    return note, octave
-
-
-def generate_output_notes():
-    """Gera a lista de notas e oitavas a serem geradas."""
-    output_notes = []
+def get_all_tones():
+    result = []
     for octave in range(1, TOTAL_OCTAVES + 1):
-        for note in NOTES:
-            output_notes.append((note, octave))
-    logger.info(f"Gerou {len(output_notes)} notas de saída.")
-    return output_notes
+        for tone in TONES:
+            result.append(f"{tone}_{octave}")
+
+    return result
 
 
-def find_closest_input(input_map, target_note, target_octave, index):
-    """Encontra o arquivo de entrada mais próximo."""
-    closest_note = None
-    closest_distance = float('inf')
-    for (input_note, input_octave), input_file in input_map.items():
-        distance = calculate_distance(input_note, input_octave, target_note, target_octave, index)
-        if distance < closest_distance:
-            closest_distance = distance
-            closest_note = (input_note, input_octave, input_file)
-    return closest_note
+def get_input_notes():
+    input_files = glob(os.path.join(INPUT_FOLDER, "*.wav"))
+    return [os.path.basename(file).replace('.wav', '') for file in input_files]
 
 
-def calculate_distance(input_note, input_octave, target_note, target_octave, index):
-    """Calcula a distância em semitons entre duas notas."""
-    note_distance = (index // 12 - (input_octave - 1)) * 12
-    note_distance += NOTES.index(target_note) - NOTES.index(input_note)
-    return abs(note_distance)
+def get_tones_between(start_note=None, end_note=None, ascending=True):
+    all_tones = get_all_tones()
+    try:
+        if start_note is not None:
+            start_index = all_tones.index(start_note) + 1
+        else:
+            start_index = 0
+
+        if end_note is not None:
+            end_index = all_tones.index(end_note)
+        else:
+            end_index = len(all_tones)
+
+        if start_index < end_index:
+            notes_range = all_tones[start_index:end_index]
+        else:
+            notes_range = all_tones[end_index:start_index][::-1]
+
+        return notes_range if ascending else notes_range[::-1]
+
+    except ValueError:
+        return "Uma ou ambas as notas fornecidas não existem no array all_tones."
+
+
+def generate_a_semitone_higher(origin_tone_path, generated_tone_path):
+    command = (f'ffmpeg -hide_banner -i {origin_tone_path} '
+               f'-af "rubberband=pitch=1.0595" '
+               f'{generated_tone_path}')
+    os.system(command)
+
+
+def generate_a_semitone_lower(origin_tone_path, generated_tone_path):
+    command = (f'ffmpeg -hide_banner -loglevel error -i {origin_tone_path} '
+               f'-af "rubberband=pitch=0.9439" '
+               f'{generated_tone_path}')
+    os.system(command)
+
+
+def generate_tones_asc(tones):
+    for _, i in enumerate(tones):
+        origin_tone = tones[i]
+        generated_tone = tones[i + 1]
+        generate_a_semitone_higher(origin_tone, generated_tone)
+
+
+def generate_tones_desc(tones, origin):
+    print(f'generate_tones_desc - Gerando os tons {tones} a partir de {origin}')
+
+    tones.reverse()
+
+    # A primeira geração considera o origin como o arquivo que veio da pasta input_samples
+    generated_tone = tones[0]
+    generate_a_semitone_lower(
+        f'{INPUT_FOLDER}/{origin}.wav',
+        f'{OUTPUT_FOLDER}/{generated_tone}.wav'
+    )
+
+    # Da segunda geração em diante considera o origin como os da pasta
+    # output_result que vão ir sendo gerados no loop
+    for i, _ in enumerate(tones):
+        if (i + 1) == len(tones):
+            break
+
+        origin_tone = tones[i]
+        generated_tone = tones[i + 1]
+        generate_a_semitone_lower(
+            f'{OUTPUT_FOLDER}/{origin_tone}.wav',
+            f'{OUTPUT_FOLDER}/{generated_tone}.wav'
+        )
+        print('.', end='')
+
+    print('\ngenerate_tones_desc - DONE')
+
+
+def sort_musical_notes(notes):
+    note_order = [
+        'c', 'c_sharp', 'd', 'd_sharp', 'e', 'f', 'f_sharp',
+        'g', 'g_sharp', 'a', 'a_sharp', 'b'
+    ]
+
+    def note_key(note):
+        parts = note.rsplit('_', 1)
+        note_part = parts[0]
+        octave = int(parts[1])
+        note_index = note_order.index(note_part)
+        return octave, note_index
+
+    sorted_notes = sorted(notes, key=note_key)
+    return sorted_notes
+
+
+def get_first_tones_between(input_notes):
+    all_tones = get_all_tones()
+    first_input_note_idx = all_tones.index(input_notes[0])
+    return all_tones[0:first_input_note_idx]
 
 
 def main():
-    """Função principal para gerar as notas."""
-    logger.info("Iniciando processo de geração de notas.")
-    input_map = map_input_files(INPUT_FOLDER)
-    output_notes = generate_output_notes()
+    input_notes = sort_musical_notes(get_input_notes())
 
-    with alive_bar(len(output_notes), title='Progresso das Notas') as bar:
-        for index, (note, octave) in enumerate(output_notes):
-            output_file = os.path.join(OUTPUT_FOLDER, f"{note}_{octave}.wav")
-            if (note, octave) in input_map:
-                # Copia o arquivo de entrada correspondente
-                input_file = input_map[(note, octave)]
-                logger.info(f"Copiando arquivo de entrada para {output_file}")
-                try:
-                    subprocess.run(["cp", input_file, output_file], check=True)
-                except subprocess.CalledProcessError as e:
-                    logger.error(f"Erro ao copiar o arquivo: {e}")
-            else:
-                # Encontra o arquivo de entrada mais próximo
-                closest_note = find_closest_input(input_map, note, octave, index)
-                if closest_note:
-                    input_note, input_octave, input_file = closest_note
-                    semitones = (octave - input_octave) * 12
-                    semitones += NOTES.index(note) - NOTES.index(input_note)
-                    logger.info(f"Gerando nota {note}_{octave}.wav com ajuste de {semitones} semitons.")
-                    generate_note_semitone_by_semitone(input_file, output_file, semitones)
+    # Caso a primeira input note não for c_1 já devem ser gerados tons a partir de c_1 até a
+    # primeira nota mais grave (que é mais aguda que c_1)
+    if input_notes[0] != "c_1":
+        origin = input_notes[0]
+        first_tones = get_first_tones_between(input_notes)
+        generate_tones_desc(first_tones, origin)
 
-            bar()  # Atualiza a barra de progresso
+    # Continua gerando as notas, agora considerando os gaps existentes no array input_notes
+    # for i, input_note in enumerate(input_notes):
+    #     tones_between = get_tones_between(input_note, input_notes[i + 1])
+    #     generate_tones_asc(tones_between)
 
-    logger.info("Processo concluído! Todas as notas foram geradas e salvas na pasta output_result.")
+    # TODO: Assim como o início será preciso gerar os tons que restarem entre a última
+    #  input_note e a última nota definitiva (b_7)
 
 
 if __name__ == "__main__":

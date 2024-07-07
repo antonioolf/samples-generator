@@ -74,7 +74,7 @@ def generate_tones_asc(tones, origin):
 
         origin_tone = tones[i]
         generated_tone = tones[i + 1]
-        generate_a_semitone_lower(
+        generate_a_semitone_higher(
             f'{OUTPUT_FOLDER}/{origin_tone}.wav',
             f'{OUTPUT_FOLDER}/{generated_tone}.wav'
         )
@@ -134,7 +134,7 @@ def get_first_tones_until(first_input_note):
 def get_last_tones_from(last_input_note):
     all_tones = get_all_tones()
     last_input_note_idx = all_tones.index(last_input_note)
-    return all_tones[last_input_note_idx:]
+    return all_tones[(last_input_note_idx + 1):]
 
 
 def copy_input_files_to_output_folder():
@@ -166,7 +166,7 @@ def main():
     if input_notes[-1] != "b_7":
         origin = input_notes[-1]
         last_tones = get_last_tones_from(origin)
-        generate_tones_desc(last_tones, origin)
+        generate_tones_asc(last_tones, origin)
 
     copy_input_files_to_output_folder()
 

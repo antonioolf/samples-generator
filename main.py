@@ -1,6 +1,5 @@
 import os
 import shutil
-import subprocess
 from glob import glob
 
 TOTAL_OCTAVES = 7
@@ -144,6 +143,7 @@ def copy_input_files_to_output_folder():
 
 
 def main():
+    shutil.rmtree(OUTPUT_FOLDER)
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     input_notes = sort_musical_notes(get_input_notes())
 

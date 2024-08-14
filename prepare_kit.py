@@ -3,16 +3,10 @@ import shutil
 import json
 import zipfile
 
-# Variáveis de configuração
-APP_KITS_FOLDER = "/home/antonio/Documents/oliveira-labs/megapiano-kits"
-GENERATED_SAMPLES_FOLDER = "/home/antonio/Documents/oliveira-labs/utils/samples-generator/output_result"
+from env import APP_KITS_FOLDER, GENERATED_SAMPLES_FOLDER, REPO_URL
 
 
-def create_next_kit_folder(kit_name):
-    # 1. Obtenha o próximo número de pasta
-    next_folder_number = get_next_folder_number()
-    print(f"Próxima pasta será: {next_folder_number}")
-
+def create_next_kit_folder(kit_name, next_folder_number):
     # 2. Crie a pasta no diretório APP_KITS_FOLDER
     new_kit_folder = os.path.join(APP_KITS_FOLDER, str(next_folder_number))
     os.makedirs(new_kit_folder, exist_ok=True)
@@ -36,10 +30,6 @@ def create_next_kit_folder(kit_name):
     # 6. Apague a pasta 'megapianokit' e todo seu conteúdo
     shutil.rmtree(megapianokit_folder)
     print(f"Subpasta 'megapianokit' removida, mantendo apenas o arquivo 'kit.megapiano'")
-
-    # 7. Atualize o arquivo index.json com o novo kit
-    update_index_json(kit_name, next_folder_number)
-    print(f"Arquivo index.json atualizado com o novo kit.")
 
 
 def get_next_folder_number():
@@ -87,8 +77,8 @@ def update_index_json(kit_name, folder_number):
     new_entry = {
         "name": kit_name,
         "path": f"online_kit_{folder_number}",
-        "coverUrl": f"https://oliveiralabs.github.io/megapiano-kits/{folder_number}/cover.png",
-        "zipUrl": f"https://oliveiralabs.github.io/megapiano-kits/{folder_number}/kit.megapiano"
+        "coverUrl": f"{REPO_URL}/{folder_number}/cover.png",
+        "zipUrl": f"{REPO_URL}/{folder_number}/kit.megapiano"
     }
     index_data.append(new_entry)
 
@@ -99,6 +89,30 @@ def update_index_json(kit_name, folder_number):
 
 
 # Execução do script
-if __name__ == "__main__":
-    kit_name = "NomeDoKit"  # Defina o nome do kit aqui ou receba como input
-    create_next_kit_folder(kit_name)
+def show_notification_info(kit_name, next_folder_number):
+    print('\n\n\n\n------------')
+    print("Título da notificação:")
+    print(f"New kit: {kit_name}")
+
+    print("\nTexto da notificação:")
+    print("Click to open!")
+
+    print("Imagem de notificação:")
+    print(f"{REPO_URL}/{next_folder_number}/cover.png")
+
+    print("Dados personalizados")
+    print("notificationType - newKit")
+    print('------------\n\n\n\n')
+
+
+def run(kit_name):
+    next_folder_number = get_next_folder_number()
+
+    # 1. Obtenha o próximo número de pasta
+    print(f"Próxima pasta será: {next_folder_number}")
+
+    create_next_kit_folder(kit_name, next_folder_number)
+
+    # 7. Atualize o arquivo index.json com o novo kit
+    update_index_json(kit_name, next_folder_number)
+    show_notification_info(kit_name, next_folder_number)

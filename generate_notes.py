@@ -142,7 +142,7 @@ def copy_input_files_to_output_folder():
         shutil.copy(filename, OUTPUT_FOLDER)
 
 
-def main():
+def run():
     shutil.rmtree(OUTPUT_FOLDER)
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     input_notes = sort_musical_notes(get_input_notes())
@@ -174,4 +174,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    run()

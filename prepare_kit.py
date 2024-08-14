@@ -33,7 +33,6 @@ def create_next_kit_folder(kit_name):
 
     # 5. Compacte a pasta 'megapianokit' e renomeie para 'kit.megapiano'
     create_kit_archive(megapianokit_folder)
-
     # 6. Apague a pasta 'megapianokit' e todo seu conteúdo
     shutil.rmtree(megapianokit_folder)
     print(f"Subpasta 'megapianokit' removida, mantendo apenas o arquivo 'kit.megapiano'")
@@ -59,10 +58,18 @@ def move_files_to_folder(source_folder, target_folder):
 
 
 def create_kit_archive(folder_path):
-    # Crie um arquivo zip da pasta e renomeie para .megapiano
-    archive_path = shutil.make_archive(folder_path, 'zip', folder_path)
-    renamed_archive = archive_path.replace('.zip', '.megapiano')
-    os.rename(archive_path, renamed_archive)
+    archive_name = os.path.join(os.path.dirname(folder_path), "kit.zip")
+
+    with zipfile.ZipFile(archive_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, os.path.dirname(folder_path))
+                zipf.write(file_path, arcname)
+
+    # Renomeie para a extensão .megapiano
+    renamed_archive = archive_name.replace('.zip', '.megapiano')
+    os.rename(archive_name, renamed_archive)
     print(f"Arquivo compactado criado: {renamed_archive}")
 
 

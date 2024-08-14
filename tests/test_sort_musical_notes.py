@@ -1,6 +1,6 @@
 import unittest
 
-from main import sort_musical_notes
+from generate_notes import sort_musical_notes
 
 
 class TestSortMusicalNotes(unittest.TestCase):

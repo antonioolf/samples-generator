@@ -1,6 +1,6 @@
 import unittest
 
-from main import get_tones_between
+from generate_notes import get_tones_between
 
 
 class TestGetSemitonesBetween(unittest.TestCase):

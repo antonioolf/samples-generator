@@ -38,6 +38,10 @@ def create_next_kit_folder(kit_name):
     shutil.rmtree(megapianokit_folder)
     print(f"Subpasta 'megapianokit' removida, mantendo apenas o arquivo 'kit.megapiano'")
 
+    # 7. Atualize o arquivo index.json com o novo kit
+    update_index_json(kit_name, next_folder_number)
+    print(f"Arquivo index.json atualizado com o novo kit.")
+
 
 def get_next_folder_number():
     # Obtenha o número da próxima pasta com base no maior número existente
@@ -60,6 +64,31 @@ def create_kit_archive(folder_path):
     renamed_archive = archive_path.replace('.zip', '.megapiano')
     os.rename(archive_path, renamed_archive)
     print(f"Arquivo compactado criado: {renamed_archive}")
+
+
+def update_index_json(kit_name, folder_number):
+    index_file_path = os.path.join(APP_KITS_FOLDER, "index.json")
+
+    # Carregar o arquivo index.json existente
+    if os.path.exists(index_file_path):
+        with open(index_file_path, 'r') as index_file:
+            index_data = json.load(index_file)
+    else:
+        index_data = []
+
+    # Adicionar o novo kit ao index.json
+    new_entry = {
+        "name": kit_name,
+        "path": f"online_kit_{folder_number}",
+        "coverUrl": f"https://oliveiralabs.github.io/megapiano-kits/{folder_number}/cover.png",
+        "zipUrl": f"https://oliveiralabs.github.io/megapiano-kits/{folder_number}/kit.megapiano"
+    }
+    index_data.append(new_entry)
+
+    # Salvar as alterações no arquivo index.json
+    with open(index_file_path, 'w') as index_file:
+        json.dump(index_data, index_file, indent=2)
+    print(f"Novo kit adicionado ao index.json: {new_entry}")
 
 
 # Execução do script
